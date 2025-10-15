@@ -5,29 +5,75 @@ import { User } from '@/models/User';
 import { generatePlainPassword } from '@/lib/password';
 import { sendMail } from '@/lib/email';
 import { requireRole } from '@/lib/server-auth';
+import type { Types } from 'mongoose';
+
+type RoleRequested = 'user' | 'researcher';
+type RequestStatus = 'pending' | 'approved' | 'rejected';
+
+type AccessRequestLean = {
+    _id: Types.ObjectId;
+    fullName: string;
+    email: string;
+    phone?: string;
+    about?: string;
+    roleRequested: RoleRequested;
+    status: RequestStatus;
+    directorLetterUrl?: string;
+    reviewedBy?: string | null;
+    reviewComment?: string | null;
+    createdUserId?: Types.ObjectId | null;
+    createdAt: Date;
+    updatedAt: Date;
+};
+
+type ActionBody = {
+    action?: 'approve' | 'reject';
+    comment?: string;
+};
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
     try {
         await requireRole(['admin', 'staff']);
         await dbConnect();
-        const item = await AccessRequest.findById(params.id).lean();
-        if (!item) return NextResponse.json({ ok: false, error: 'Not found' }, { status: 404 });
+
+        const item = await AccessRequest.findById(params.id)
+            .lean<AccessRequestLean | null>();
+
+        if (!item) {
+            return NextResponse.json({ ok: false, error: 'Not found' }, { status: 404 });
+        }
+
         return NextResponse.json({ ok: true, item });
-    } catch (e: any) {
-        return NextResponse.json({ ok: false, error: e.message }, { status: e.status || 400 });
+    } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : 'Unexpected error';
+        return NextResponse.json({ ok: false, error: msg }, { status: 400 });
     }
 }
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
     try {
         await requireRole(['admin', 'staff']);
-        const body = await req.json().catch(() => ({} as any));
-        const action = body?.action as 'approve' | 'reject';
-        const comment = body?.comment || '';
+
+        let parsed: ActionBody = {};
+        try {
+            parsed = (await req.json()) as ActionBody;
+        } catch {
+            parsed = {};
+        }
+
+        const action = parsed.action;
+        const comment = parsed.comment ?? '';
+
+        if (action !== 'approve' && action !== 'reject') {
+            return NextResponse.json({ ok: false, error: 'Invalid action' }, { status: 400 });
+        }
 
         await dbConnect();
+
         const requestDoc = await AccessRequest.findById(params.id);
-        if (!requestDoc) return NextResponse.json({ ok: false, error: 'Not found' }, { status: 404 });
+        if (!requestDoc) {
+            return NextResponse.json({ ok: false, error: 'Not found' }, { status: 404 });
+        }
         if (requestDoc.status !== 'pending') {
             return NextResponse.json({ ok: false, error: 'Already reviewed' }, { status: 400 });
         }
@@ -69,7 +115,11 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       `,
         });
 
-        return NextResponse.json({ ok: true, status: 'approved', userId: newUser._id });
+        return NextResponse.json({
+            ok: true,
+            status: 'approved',
+            userId: String(newUser._id),
+        });
     } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : 'Unexpected error';
         return NextResponse.json({ ok: false, error: msg }, { status: 400 });
