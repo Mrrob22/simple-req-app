@@ -1,17 +1,36 @@
-import jwt from 'jsonwebtoken';
+import { sign, verify, type JwtPayload, type Secret } from 'jsonwebtoken';
 
-const ACCESS_TTL = '15m';
-const REFRESH_TTL = '30d';
+const JWT_SECRET = process.env.JWT_SECRET as Secret;
+const JWT_REFRESH_SECRET = (process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET) as Secret;
+if (!JWT_SECRET) throw new Error('Missing JWT_SECRET');
 
-export function signAccessToken(payload: object) {
-    return jwt.sign(payload, process.env.JWT_ACCESS_SECRET!, { expiresIn: ACCESS_TTL });
+export type JWTPayload = { uid: string; role: string; email: string };
+
+export function signJwt(payload: JWTPayload, expiresInSec = 60 * 60 * 24 * 7) {
+    return sign(payload, JWT_SECRET, {
+        algorithm: 'HS256',
+        expiresIn: expiresInSec,
+    });
 }
-export function signRefreshToken(payload: object) {
-    return jwt.sign(payload, process.env.JWT_REFRESH_SECRET!, { expiresIn: REFRESH_TTL });
+
+export function verifyJwt<T = JWTPayload>(token: string): T | null {
+    try {
+        return verify(token, JWT_SECRET) as T;
+    } catch {
+        return null;
+    }
 }
-export function verifyAccess(token: string) {
-    return jwt.verify(token, process.env.JWT_ACCESS_SECRET!);
-}
-export function verifyRefresh(token: string) {
-    return jwt.verify(token, process.env.JWT_REFRESH_SECRET!);
+
+export const signAccessToken = (payload: { sub: string; role?: string; email?: string }) =>
+    sign(payload, JWT_SECRET, { algorithm: 'HS256', expiresIn: 60 * 15 }); // 15 мин
+
+export const signRefreshToken = (payload: { sub: string }) =>
+    sign(payload, JWT_REFRESH_SECRET, { algorithm: 'HS256', expiresIn: 60 * 60 * 24 * 30 });
+
+export function verifyRefresh<T = { sub: string }>(token: string): T | null {
+    try {
+        return verify(token, JWT_REFRESH_SECRET) as T;
+    } catch {
+        return null;
+    }
 }
