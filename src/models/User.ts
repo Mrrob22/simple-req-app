@@ -1,22 +1,25 @@
 import { Schema, model, models } from 'mongoose';
 import bcrypt from 'bcryptjs';
 
-export type UserRole = 'admin' | 'researcher' | 'staff' | 'user';
+export type UserRole = 'admin' | 'staff' | 'researcher' | 'user';
+export const ROLES = ['admin','staff','researcher','user'] as const;
 
 const UserSchema = new Schema({
-    name: { type: String, required: true },
-    email: { type: String, unique: true, index: true, required: true },
+    name: { type: String, required: true, trim: true },
+    email: { type: String, unique: true, index: true, required: true, lowercase: true, trim: true },
     password: { type: String, required: true },
-    role: { type: String, enum: ['admin','researcher','staff','user'], default: 'user' },
+    role: { type: String, enum: ROLES, default: 'user' },
 
     exhibitsCount: { type: String, default: '0' },
     commentsCount: { type: String, default: '0' },
     notificationsCount: { type: String, default: '0' },
 
     isActive: { type: Boolean, default: true },
-    emailVerifiedAt: { type: Date },
-    lastLoginAt: { type: Date },
-    refreshTokenHash: { type: String },
+    emailVerified: { type: Date, default: null },
+    lastLoginAt: { type: Date, default: null },
+
+    resetPasswordToken: { type: String, default: null },
+    resetPasswordExpires: { type: Date, default: null },
 }, { timestamps: true });
 
 UserSchema.pre('save', async function(next) {

@@ -1,22 +1,18 @@
-import { NextResponse, NextRequest } from 'next/server';
-import { verifyJwt } from './lib/jwt';
-
-const USER_ONLY = ['/auth/profile'];
-const ADMIN_ONLY_PREFIX = '/admin';
+import { NextResponse, type NextRequest } from 'next/server';
 
 export function middleware(req: NextRequest) {
-    const { pathname } = req.nextUrl;
-    const token = req.cookies.get('session')?.value;
+    const url = req.nextUrl;
+    const pathname = url.pathname;
 
-    const payload = token ? verifyJwt<{ role: string }>(token) : null;
+    const token =
+        req.cookies.get('session')?.value ||
+        req.cookies.get('access_token')?.value ||
+        null;
 
-    if (USER_ONLY.includes(pathname)) {
-        if (!payload) return NextResponse.redirect(new URL('/auth/login', req.url));
-    }
-
-    if (pathname.startsWith(ADMIN_ONLY_PREFIX)) {
-        if (!payload || !['admin', 'staff'].includes(payload.role)) {
-            return NextResponse.redirect(new URL('/auth/login', req.url));
+    if ((pathname.startsWith('/admin') || pathname === '/auth/profile')) {
+        if (!token) {
+            url.pathname = '/auth/login';
+            return NextResponse.redirect(url);
         }
     }
 

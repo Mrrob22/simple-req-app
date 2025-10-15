@@ -4,7 +4,7 @@ import { getSessionCookie } from '@/lib/cookies';
 import { verifyJwt } from '@/lib/jwt';
 import { User } from '@/models/User';
 
-type LeanUser = { _id: string; name: string; email: string; role: string };
+type LeanUser = { _id: string; name: string; email: string; role: 'admin'|'staff'|'user'|'researcher' };
 
 export async function GET() {
     try {

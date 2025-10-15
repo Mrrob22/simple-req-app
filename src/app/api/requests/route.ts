@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db';
 import { AccessRequest } from '@/models/AccessRequest';
 import { baseRequestSchema, typeSchema, researcherSchema } from '@/lib/validation';
-import { assertAdminKey } from '@/lib/adminAuth';
-import {sendMail} from "@/lib/email";
+import { sendMail } from '@/lib/email';
+import { requireRole } from '@/lib/server-auth';
 
 export async function POST(req: Request) {
     try {
@@ -64,14 +64,13 @@ export async function POST(req: Request) {
     }
 }
 
-export async function GET(req: Request) {
+export async function GET() {
     try {
-        assertAdminKey(req.headers);
+        await requireRole(['admin','staff']);
         await dbConnect();
         const list = await AccessRequest.find().sort({ createdAt: -1 }).lean();
         return NextResponse.json({ ok: true, items: list });
     } catch (e: any) {
-        const status = e.status || 400;
-        return NextResponse.json({ ok: false, error: e.message }, { status });
+        return NextResponse.json({ ok: false, error: e.message }, { status: e.status || 403 });
     }
 }

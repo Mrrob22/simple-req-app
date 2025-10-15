@@ -2,26 +2,27 @@ import { NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/db';
 import { AccessRequest } from '@/models/AccessRequest';
 import { User } from '@/models/User';
-import { assertAdminKey } from '@/lib/adminAuth';
 import { generatePlainPassword } from '@/lib/password';
 import { sendMail } from '@/lib/email';
+import { requireRole } from '@/lib/server-auth';
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
     try {
+        await requireRole(['admin', 'staff']);
         await dbConnect();
         const item = await AccessRequest.findById(params.id).lean();
         if (!item) return NextResponse.json({ ok: false, error: 'Not found' }, { status: 404 });
         return NextResponse.json({ ok: true, item });
     } catch (e: any) {
-        return NextResponse.json({ ok: false, error: e.message }, { status: 400 });
+        return NextResponse.json({ ok: false, error: e.message }, { status: e.status || 400 });
     }
 }
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
     try {
-        assertAdminKey(req.headers);
+        await requireRole(['admin', 'staff']);
         const body = await req.json().catch(() => ({} as any));
-        const action = body?.action as 'approve'|'reject';
+        const action = body?.action as 'approve' | 'reject';
         const comment = body?.comment || '';
 
         await dbConnect();
@@ -61,16 +62,15 @@ export async function POST(req: Request, { params }: { params: { id: string } })
             subject: 'Ваш доступ схвалено',
             html: `
         <p>Вітаємо, ${requestDoc.fullName}!</p>
-        <p>Ваш запит на доступ схвалено. Обліковий запис створено.</p>
+        <p>Ваш обліковий запис створено.</p>
         <p><b>Логін (email):</b> ${requestDoc.email}<br/>
            <b>Тимчасовий пароль:</b> ${plainPass}</p>
-        <p>Будь ласка, виконайте вхід та змініть пароль: <a href="${appUrl}/auth/login">${appUrl}/auth/login</a></p>
+        <p>Вхід: <a href="${appUrl}/auth/login">${appUrl}/auth/login</a></p>
       `,
         });
 
         return NextResponse.json({ ok: true, status: 'approved', userId: newUser._id });
     } catch (e: any) {
-        const status = e.status || 400;
-        return NextResponse.json({ ok: false, error: e.message }, { status });
+        return NextResponse.json({ ok: false, error: e.message }, { status: e.status || 400 });
     }
 }

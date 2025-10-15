@@ -22,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <span style={{marginLeft:'auto'}} />
         <Link href="/auth/login">Логін</Link>
         <Link href="/auth/profile">Профіль</Link>
+        <Link href="/admin/users">Адмін • Користувачі</Link>
       </header>
       <main style={{flex:1}}>{children}</main>
       <footer style={{borderTop:'1px solid #eee', padding:'12px 16px', fontSize:12, color:'#777'}}>
