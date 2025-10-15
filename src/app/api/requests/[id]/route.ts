@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { dbConnect } from '@/lib/db';
 import { AccessRequest } from '@/models/AccessRequest';
 import { User } from '@/models/User';
@@ -31,18 +31,19 @@ type ActionBody = {
     comment?: string;
 };
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(
+    _req: NextRequest,
+    context: { params: Promise<{ id: string }> }
+) {
     try {
         await requireRole(['admin', 'staff']);
+        const { id } = await context.params;
+
         await dbConnect();
-
-        const item = await AccessRequest.findById(params.id)
-            .lean<AccessRequestLean | null>();
-
+        const item = await AccessRequest.findById(id).lean<AccessRequestLean | null>();
         if (!item) {
             return NextResponse.json({ ok: false, error: 'Not found' }, { status: 404 });
         }
-
         return NextResponse.json({ ok: true, item });
     } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : 'Unexpected error';
@@ -50,7 +51,10 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     }
 }
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(
+    req: NextRequest,
+    context: { params: Promise<{ id: string }> }
+) {
     try {
         await requireRole(['admin', 'staff']);
 
@@ -63,14 +67,14 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
         const action = parsed.action;
         const comment = parsed.comment ?? '';
-
         if (action !== 'approve' && action !== 'reject') {
             return NextResponse.json({ ok: false, error: 'Invalid action' }, { status: 400 });
         }
 
-        await dbConnect();
+        const { id } = await context.params;
 
-        const requestDoc = await AccessRequest.findById(params.id);
+        await dbConnect();
+        const requestDoc = await AccessRequest.findById(id);
         if (!requestDoc) {
             return NextResponse.json({ ok: false, error: 'Not found' }, { status: 404 });
         }
