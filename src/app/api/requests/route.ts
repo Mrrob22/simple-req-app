@@ -3,6 +3,7 @@ import { dbConnect } from '@/lib/db';
 import { AccessRequest } from '@/models/AccessRequest';
 import { baseRequestSchema, typeSchema, researcherSchema } from '@/lib/validation';
 import { assertAdminKey } from '@/lib/adminAuth';
+import {sendMail} from "@/lib/email";
 
 export async function POST(req: Request) {
     try {
@@ -25,6 +26,36 @@ export async function POST(req: Request) {
             passport: body.passport || {},
             directorLetterUrl: body.directorLetterUrl || '',
             status: 'pending',
+        });
+
+        const appUrl = process.env.APP_URL || '';
+        const adminList = (process.env.ADMIN_NOTIFY_EMAILS || '').split(',').map(s=>s.trim()).filter(Boolean);
+
+        if (adminList.length) {
+            await sendMail({
+                to: adminList,
+                subject: `Нова заявка: ${created.fullName} (${created.roleRequested})`,
+                html: `
+          <h2>Нова заявка</h2>
+          <p><b>ПІБ:</b> ${created.fullName}<br/>
+             <b>Email:</b> ${created.email}<br/>
+             <b>Телефон:</b> ${created.phone || '-'}<br/>
+             <b>Роль:</b> ${created.roleRequested}<br/>
+             <b>Про себе:</b> ${created.about || '-'}<br/>
+             <b>Посилання заяви директора:</b> ${created.directorLetterUrl || '-'}</p>
+          <p><a href="${appUrl}/admin/requests">Відкрити список заявок</a></p>
+        `,
+            });
+        }
+
+        await sendMail({
+            to: created.email,
+            subject: 'Ваш запит отримано',
+            html: `
+        <p>Дякуємо, ${created.fullName}!</p>
+        <p>Ми отримали ваш запит на доступ (${created.roleRequested}). Після модерації ви отримаєте лист із результатом.</p>
+        <p>Якщо це були ви — нічого робити не потрібно.</p>
+      `,
         });
 
         return NextResponse.json({ ok: true, id: created._id });
