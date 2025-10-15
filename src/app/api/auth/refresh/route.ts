@@ -16,8 +16,8 @@ export async function POST() {
             return NextResponse.json({ ok: false, error: 'Invalid refresh token' }, { status: 401 });
         }
 
-        const access  = signAccessToken({ sub: payload.sub, role: payload.role, email: payload.email }); // 15 мин
-        const refresh = signRefreshToken({ sub: payload.sub });                                          // 30 дней
+        const access  = signAccessToken({ sub: payload.sub, role: payload.role, email: payload.email });
+        const refresh = signRefreshToken({ sub: payload.sub });
 
         await setAuthCookies({ access, refresh });
 

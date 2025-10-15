@@ -22,7 +22,7 @@ export function verifyJwt<T = JWTPayload>(token: string): T | null {
 }
 
 export const signAccessToken = (payload: { sub: string; role?: string; email?: string }) =>
-    sign(payload, JWT_SECRET, { algorithm: 'HS256', expiresIn: 60 * 15 }); // 15 мин
+    sign(payload, JWT_SECRET, { algorithm: 'HS256', expiresIn: 60 * 15 });
 
 export const signRefreshToken = (payload: { sub: string }) =>
     sign(payload, JWT_REFRESH_SECRET, { algorithm: 'HS256', expiresIn: 60 * 60 * 24 * 30 });

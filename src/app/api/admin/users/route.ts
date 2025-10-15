@@ -8,17 +8,22 @@ const createSchema = z.object({
     name: z.string().min(2),
     email: z.string().email(),
     password: z.string().min(8),
-    role: z.enum(['admin','staff','user','researcher']).default('admin'),
+    role: z.enum(['admin', 'staff', 'user', 'researcher']).default('admin'),
 });
+
+type LeanUserItem = { _id: string; name: string; email: string; role: 'admin' | 'staff' | 'user' | 'researcher'; createdAt: Date };
 
 export async function GET() {
     try {
-        await requireRole(['admin','staff']);
+        await requireRole(['admin', 'staff']);
         await dbConnect();
-        const list = await User.find().select('name email role createdAt').sort({ createdAt: -1 }).lean();
+        const list = await User.find()
+            .select('name email role createdAt')
+            .sort({ createdAt: -1 })
+            .lean<LeanUserItem[]>();
         return NextResponse.json({ ok: true, items: list });
-    } catch (e:any) {
-        return NextResponse.json({ ok: false, error: e.message }, { status: e.status || 403 });
+    } catch (_e: unknown) {
+        return NextResponse.json({ ok: false, error: 'Forbidden' }, { status: 403 });
     }
 }
 
@@ -30,12 +35,12 @@ export async function POST(req: Request) {
 
         await dbConnect();
         const exists = await User.findOne({ email: email.toLowerCase() });
-        if (exists) return NextResponse.json({ ok:false, error:'Email already exists' }, { status:400 });
+        if (exists) return NextResponse.json({ ok: false, error: 'Email already exists' }, { status: 400 });
 
         const u = new User({ name, email, password, role });
         await u.save();
 
-        return NextResponse.json({ ok:true, id: u._id, role: u.role });
+        return NextResponse.json({ ok: true, id: u._id, role: u.role });
     } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : 'Unexpected error';
         return NextResponse.json({ ok: false, error: msg }, { status: 400 });

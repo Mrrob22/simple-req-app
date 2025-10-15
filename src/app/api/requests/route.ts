@@ -5,6 +5,19 @@ import { baseRequestSchema, typeSchema, researcherSchema } from '@/lib/validatio
 import { sendMail } from '@/lib/email';
 import { requireRole } from '@/lib/server-auth';
 
+type AccessRequestItem = {
+    _id: string;
+    fullName: string;
+    email: string;
+    phone?: string;
+    about?: string;
+    agreed: boolean;
+    roleRequested: 'user' | 'researcher';
+    status: 'pending' | 'approved' | 'rejected';
+    directorLetterUrl?: string;
+    createdAt: Date;
+};
+
 export async function POST(req: Request) {
     try {
         const body = await req.json();
@@ -29,7 +42,10 @@ export async function POST(req: Request) {
         });
 
         const appUrl = process.env.APP_URL || '';
-        const adminList = (process.env.ADMIN_NOTIFY_EMAILS || '').split(',').map(s=>s.trim()).filter(Boolean);
+        const adminList: string[] = (process.env.ADMIN_NOTIFY_EMAILS || '')
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean);
 
         if (adminList.length) {
             await sendMail({
@@ -59,16 +75,17 @@ export async function POST(req: Request) {
         });
 
         return NextResponse.json({ ok: true, id: created._id });
-    } catch (e: any) {
-        return NextResponse.json({ ok: false, error: e.message }, { status: 400 });
+    } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : 'Unexpected error';
+        return NextResponse.json({ ok: false, error: msg }, { status: 400 });
     }
 }
 
 export async function GET() {
     try {
-        await requireRole(['admin','staff']);
+        await requireRole(['admin', 'staff']);
         await dbConnect();
-        const list = await AccessRequest.find().sort({ createdAt: -1 }).lean();
+        const list = await AccessRequest.find().sort({ createdAt: -1 }).lean<AccessRequestItem[]>();
         return NextResponse.json({ ok: true, items: list });
     } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : 'Unexpected error';

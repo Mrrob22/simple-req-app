@@ -51,7 +51,6 @@ export default function RequestTypePage() {
             return;
         }
 
-        // submit сразу для обычного пользователя
         const res = await fetch('/api/requests', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

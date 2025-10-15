@@ -16,11 +16,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
         await dbConnect();
 
-        const updated = await User.findByIdAndUpdate(
-            params.id,
-            { role },
-            { new: true }
-        )
+        const updated = await User.findByIdAndUpdate(params.id, { role }, { new: true })
             .select('role')
             .lean<LeanUserRoleOnly | null>();
 
