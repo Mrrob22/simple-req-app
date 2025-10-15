@@ -1,16 +1,19 @@
-import mongoose from 'mongoose';
+import mongoose, { type Mongoose } from 'mongoose';
 
-const MONGODB_URI = process.env.MONGODB_URI!;
-if (!MONGODB_URI) throw new Error('Missing MONGODB_URI');
+declare global {
+    // eslint-disable-next-line no-var
+    var __mongoose: { conn: Mongoose | null; promise: Promise<Mongoose> | null } | undefined;
+}
 
-let cached = (global as any)._mongoose || { conn: null, promise: null };
+const cached = global.__mongoose ??= { conn: null, promise: null as Promise<Mongoose> | null };
 
-export async function dbConnect() {
+export async function dbConnect(): Promise<Mongoose> {
     if (cached.conn) return cached.conn;
     if (!cached.promise) {
-        cached.promise = mongoose.connect(MONGODB_URI, { dbName: 'access_request' }).then(m => m);
+        const uri = process.env.MONGODB_URI;
+        if (!uri) throw new Error('Missing MONGODB_URI');
+        cached.promise = mongoose.connect(uri, { dbName: process.env.MONGODB_DB || undefined });
     }
     cached.conn = await cached.promise;
-    (global as any)._mongoose = cached;
     return cached.conn;
 }

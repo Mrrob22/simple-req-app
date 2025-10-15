@@ -11,7 +11,8 @@ export async function GET() {
             connected: !!conn?.connection?.readyState,
             requestsCount: count,
         });
-    } catch (e: any) {
-        return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
+    } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : 'Unexpected error';
+        return NextResponse.json({ ok: false, error: msg }, { status: 400 });
     }
 }

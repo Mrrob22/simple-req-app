@@ -2,54 +2,89 @@
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
+type Role = 'user' | 'researcher';
+
+type BaseForm = {
+    fullName: string;
+    email: string;
+    phone: string;
+    about: string;
+    agreed: boolean;
+};
+
+type CreateRequestOk = { ok: true; id: string };
+type CreateRequestErr = { ok: false; error?: string };
+type CreateRequestResp = CreateRequestOk | CreateRequestErr;
+
 export default function RequestTypePage() {
     const sp = useSearchParams();
     const router = useRouter();
-    const [roleRequested, setRole] = useState<'user'|'researcher'>('user');
-    const [base, setBase] = useState<any>({});
 
-    useEffect(()=> {
+    const [roleRequested, setRole] = useState<Role>('user');
+    const [base, setBase] = useState<BaseForm>({
+        fullName: '',
+        email: '',
+        phone: '',
+        about: '',
+        agreed: false,
+    });
+
+    useEffect(() => {
         setBase({
-            fullName: sp.get('fullName')||'',
-            email: sp.get('email')||'',
-            phone: sp.get('phone')||'',
-            about: sp.get('about')||'',
+            fullName: sp.get('fullName') ?? '',
+            email: sp.get('email') ?? '',
+            phone: sp.get('phone') ?? '',
+            about: sp.get('about') ?? '',
             agreed: sp.get('agreed') === 'true',
         });
     }, [sp]);
 
-    function next() {
+    async function next() {
         const params = new URLSearchParams();
-        Object.entries(base).forEach(([k,v])=>params.set(k, String(v)));
+        (Object.entries(base) as Array<[keyof BaseForm, string | boolean]>).forEach(
+            ([k, v]) => params.set(k, String(v)),
+        );
         params.set('roleRequested', roleRequested);
+
         if (roleRequested === 'researcher') {
             router.push(`/auth/request/researcher?${params.toString()}`);
-        } else {
-            // submit одразу
-            fetch('/api/requests', {
-                method: 'POST',
-                headers: { 'Content-Type':'application/json' },
-                body: JSON.stringify({ ...base, roleRequested })
-            }).then(r=>r.json()).then(res=>{
-                if (res.ok) router.push('/auth/request/sent');
-                else alert(res.error||'Помилка');
-            });
+            return;
         }
+
+        // submit сразу для обычного пользователя
+        const res = await fetch('/api/requests', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...base, roleRequested }),
+        });
+        const data = (await res.json()) as CreateRequestResp;
+
+        if (data.ok) router.push('/auth/request/sent');
+        else alert(data.error ?? 'Помилка');
     }
 
     return (
         <main style={{ maxWidth: 640, margin: '40px auto', padding: 16 }}>
             <h1>Вибір ролі</h1>
             <label>
-                <input type="radio" checked={roleRequested==='user'} onChange={()=>setRole('user')} />
+                <input
+                    type="radio"
+                    checked={roleRequested === 'user'}
+                    onChange={() => setRole('user')}
+                />
                 Користувач
             </label>
-            <br/>
+            <br />
             <label>
-                <input type="radio" checked={roleRequested==='researcher'} onChange={()=>setRole('researcher')} />
+                <input
+                    type="radio"
+                    checked={roleRequested === 'researcher'}
+                    onChange={() => setRole('researcher')}
+                />
                 Дослідник
             </label>
-            <br/><br/>
+            <br />
+            <br />
             <button onClick={next}>Далі</button>
         </main>
     );

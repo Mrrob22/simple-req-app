@@ -1,7 +1,14 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 
+type UserRole = 'admin'|'staff'|'user'|'researcher';
 type UserRow = { _id: string; name: string; email: string; role: 'admin'|'staff'|'user'|'researcher'; createdAt: string };
+
+type ListUsersResp = { ok: true; items: UserRow[] } | { ok: false; error: string };
+type CreateUserReq = { name: string; email: string; password: string; role: UserRole };
+type CreateUserResp = { ok: true; id: string; role: UserRole } | { ok: false; error: string };
+type ChangeRoleResp = { ok: true; role: UserRole } | { ok: false; error: string };
+
 
 export default function AdminUsersClient() {
     const [items, setItems] = useState<UserRow[]>([]);

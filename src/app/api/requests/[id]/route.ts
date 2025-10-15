@@ -70,7 +70,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         });
 
         return NextResponse.json({ ok: true, status: 'approved', userId: newUser._id });
-    } catch (e: any) {
-        return NextResponse.json({ ok: false, error: e.message }, { status: e.status || 400 });
+    } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : 'Unexpected error';
+        return NextResponse.json({ ok: false, error: msg }, { status: 400 });
     }
 }

@@ -22,7 +22,8 @@ export async function POST() {
         await setAuthCookies({ access, refresh });
 
         return NextResponse.json({ ok: true });
-    } catch {
-        return NextResponse.json({ ok: false, error: 'Invalid refresh' }, { status: 401 });
+    } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : 'Unexpected error';
+        return NextResponse.json({ ok: false, error: msg }, { status: 400 });
     }
 }

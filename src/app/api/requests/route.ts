@@ -70,7 +70,8 @@ export async function GET() {
         await dbConnect();
         const list = await AccessRequest.find().sort({ createdAt: -1 }).lean();
         return NextResponse.json({ ok: true, items: list });
-    } catch (e: any) {
-        return NextResponse.json({ ok: false, error: e.message }, { status: e.status || 403 });
+    } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : 'Unexpected error';
+        return NextResponse.json({ ok: false, error: msg }, { status: 400 });
     }
 }

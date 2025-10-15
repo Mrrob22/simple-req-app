@@ -22,7 +22,8 @@ export async function POST(req: Request) {
         await user.save();
 
         return NextResponse.json({ ok: true, userId: user._id });
-    } catch (e: any) {
-        return NextResponse.json({ ok: false, error: e.message }, { status: 400 });
+    } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : 'Unexpected error';
+        return NextResponse.json({ ok: false, error: msg }, { status: 400 });
     }
 }

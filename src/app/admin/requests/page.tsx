@@ -1,18 +1,31 @@
 'use client';
 import { useEffect, useState } from 'react';
 
+type AccessRequestItem = {
+    _id: string;
+    fullName: string;
+    email: string;
+    phone?: string;
+    about?: string;
+    roleRequested: 'user' | 'researcher';
+    status: 'pending' | 'approved' | 'rejected';
+    createdAt: string;
+};
+
+type ListResponse = { ok: true; items: AccessRequestItem[] } | { ok: false; error: string };
+
 export default function AdminRequestsPage() {
-    const [items, setItems] = useState<any[]>([]);
+    const [items, setItems] = useState<AccessRequestItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState<string>('');
 
     async function load() {
         setLoading(true); setErr('');
         const res = await fetch('/api/requests', { cache: 'no-store' });
-        const data = await res.json();
+        const data = (await res.json()) as ListResponse;
         setLoading(false);
-        if (data.ok) setItems(data.items);
-        else setErr(data.error || 'Помилка');
+        if ('ok' in data && data.ok) setItems(data.items);
+        else setErr(('error' in data && data.error) || 'Помилка');
     }
 
     useEffect(()=>{ load(); }, []);
@@ -24,7 +37,7 @@ export default function AdminRequestsPage() {
             headers: { 'Content-Type':'application/json' },
             body: JSON.stringify({ action, comment }),
         });
-        const data = await res.json();
+        const data = (await res.json()) as { ok: boolean; error?: string };
         if (data.ok) load(); else setErr(data.error || 'Помилка');
     }
 

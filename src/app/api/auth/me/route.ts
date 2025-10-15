@@ -25,7 +25,8 @@ export async function GET() {
             ok: true,
             user: { id: user._id, name: user.name, email: user.email, role: user.role },
         });
-    } catch {
-        return NextResponse.json({ ok: false, user: null });
+    } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : 'Unexpected error';
+        return NextResponse.json({ ok: false, error: msg }, { status: 400 });
     }
 }
