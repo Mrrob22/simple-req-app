@@ -1,6 +1,6 @@
 'use client';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
 
 type Role = 'user' | 'researcher';
 
@@ -16,7 +16,7 @@ type CreateRequestOk = { ok: true; id: string };
 type CreateRequestErr = { ok: false; error?: string };
 type CreateRequestResp = CreateRequestOk | CreateRequestErr;
 
-export default function RequestTypePage() {
+function TypeInner() {
     const sp = useSearchParams();
     const router = useRouter();
 
@@ -86,5 +86,13 @@ export default function RequestTypePage() {
             <br />
             <button onClick={next}>Далі</button>
         </main>
+    );
+}
+
+export default function RequestTypePage() {
+    return (
+        <Suspense fallback={<main style={{maxWidth:640, margin:'40px auto'}}>Loading…</main>}>
+            <TypeInner />
+        </Suspense>
     );
 }

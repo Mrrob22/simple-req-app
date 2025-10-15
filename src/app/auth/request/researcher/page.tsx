@@ -1,6 +1,6 @@
 'use client';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
 
 type Role = 'user' | 'researcher';
 
@@ -29,7 +29,7 @@ type CreateRequestOk = { ok: true; id: string };
 type CreateRequestErr = { ok: false; error?: string };
 type CreateRequestResp = CreateRequestOk | CreateRequestErr;
 
-export default function ResearcherPage() {
+function ResearcherInner() {
     const sp = useSearchParams();
     const router = useRouter();
 
@@ -153,5 +153,13 @@ export default function ResearcherPage() {
             <br />
             <button onClick={submit}>Надіслати</button>
         </main>
+    );
+}
+
+export default function ResearcherPage() {
+    return (
+        <Suspense fallback={<main style={{maxWidth:640, margin:'40px auto'}}>Loading…</main>}>
+            <ResearcherInner />
+        </Suspense>
     );
 }
